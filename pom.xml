@@ -43,5 +43,10 @@
             <version>5.8.0-M1</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>systems.manifold</groupId>
+            <artifactId>manifold-ext</artifactId>
+            <version>2021.1.14</version>
+        </dependency>
     </dependencies>
 </project>
