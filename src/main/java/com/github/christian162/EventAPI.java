@@ -34,16 +34,18 @@ public class EventAPI {
     }
 
     public <T extends Event> void registerListener(EventNode<T> parentNode, Listener listener) {
+
+
         Class<? extends Listener> listenerClass = listener.getClass();
         Node node = listenerClass.getAnnotation(Node.class);
 
-        if (node == null) {
+        if (node == null || registeredNodes.containsKey(node.name())) {
             return;
         }
 
         Optional<Method> filterMethodOptional = Arrays.stream(listenerClass.getMethods())
-                .filter(method -> method.isAnnotationPresent(Filter.class))
-                .findFirst();
+            .filter(method -> method.isAnnotationPresent(Filter.class))
+            .findFirst();
 
         List<Method> methods = Arrays.stream(listenerClass.getMethods())
                 .filter(method -> method.isAnnotationPresent(EventListener.class))
@@ -55,12 +57,7 @@ public class EventAPI {
             return;
         }
 
-        if (registeredNodes.containsKey(eventNode.getName())) {
-            registeredNodes.replace(eventNode.getName(), eventNode);
-        } else {
-            registeredNodes.put(eventNode.getName(), eventNode);
-        }
-
+        registeredNodes.put(eventNode.getName(), eventNode);
         parentNode.addChild(eventNode);
     }
 
@@ -159,7 +156,6 @@ public class EventAPI {
         if (filterMethod.getParameterCount() != 1) {
             return predicate;
         }
-
 
         Parameter[] parameters = filterMethod.getParameters();
         Parameter parameter = parameters[0];
