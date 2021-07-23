@@ -1,5 +1,8 @@
 # EventAPI
 An annotation based framework for Minestom's event API
+(docs and demo will be updated shortly)
+
+[![](https://jitpack.io/v/christian162/EventAPI.svg)](https://jitpack.io/#christian162/EventAPI)
 
 # Demo
 ```java
