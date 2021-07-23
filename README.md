@@ -4,6 +4,19 @@ An annotation based framework for Minestom's event API
 
 [![](https://jitpack.io/v/christian162/EventAPI.svg)](https://jitpack.io/#christian162/EventAPI)
 
+<repositories>
+    <repository>
+        <id>jitpack.io</id>
+        <url>https://jitpack.io</url>
+    </repository>
+</repositories>
+
+<dependency>
+    <groupId>com.github.christian162</groupId>
+    <artifactId>EventAPI</artifactId>
+    <version>1.0.0-BETA</version>
+</dependency>
+
 # Demo
 ```java
 public static void main(String[] args) {
