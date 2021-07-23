@@ -76,5 +76,6 @@ public class EventAPI {
         }
 
         parentNode.addChild(eventNode);
+        eventNodeContainer.add(eventNode);
     }
 }

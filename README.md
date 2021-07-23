@@ -3,6 +3,23 @@ An annotation based framework for Minestom's event API
 
 # Demo
 ```java
+public static void main(String[] args) {
+    GlobalEventHandler globalEventHandler = MinecraftServer.getGlobalEventHandler();
+
+    EventAPIOptions eventAPIOptions = new EventAPIOptions();
+    eventAPIOptions.setDefaultParentNode(globalEventHandler);
+    eventAPIOptions.setRegisterInvalidChildren(false);
+
+    EventAPI eventAPI = new EventAPI(eventAPIOptions);
+    eventAPI.register(new MyEventListener());
+
+    // sub node of MyEventListener
+    eventAPI.register(new MyEventListener.MyChildListener());
+
+    // sub node of MyEventListener.MyChildListener
+    eventAPI.register(new MyEventListener.MyChildListener.MyOtherChildListener());
+}
+
 /*
     Parent nodes must be less strict then their child nodes.
     This structure works as each child event type is derived from their parent's event type.
@@ -19,11 +36,11 @@ public class MyEventListener implements Listener {
     // put some listener methods here.
 
     @Node(name = "my-child-node", event = EntityEvent.class, priority = 1)
-    public class MyChildListener implements Listener {
+    public static class MyChildListener implements Listener {
         // put some listener methods here.
 
         @Node(name = "my-other-child-node", event = PlayerEvent.class, priority = 2)
-        public class MyOtherChildListener implements Listener {
+        public static class MyOtherChildListener implements Listener {
 
             /*
                 A filter can be used to only listen to events that meet a certain condition.
@@ -42,6 +59,22 @@ public class MyEventListener implements Listener {
             public void onPlayerLogin(PlayerLoginEvent playerLoginEvent) {
 
             }
+        }
+
+        /*
+            This is an invalid child node
+
+            What will happen????
+            If EventAPIOptions#registerInvalidChildren is true ->
+                This node will still be registered, but it will be registered normally under the DEFAULT parent node
+                (EventAPIOptions#defaultParentNode)
+            Else ->
+                This node will not be registered
+        */
+
+        @Node(name = "testing-node", event = InstanceEvent.class, priority = 3)
+        public static class MyInvalidSubListener implements Listener {
+            // ...
         }
     }
 }

@@ -4,19 +4,19 @@ import net.minestom.server.event.Event;
 import net.minestom.server.event.EventNode;
 
 public class EventAPIOptions {
-    private boolean autoResolveChildren;
+    private boolean registerInvalidChildren = false;
     private EventNode<? extends Event> defaultParentNode;
+
+    public void setRegisterInvalidChildren(boolean registerInvalidChildren) {
+        this.registerInvalidChildren = registerInvalidChildren;
+    }
 
     public void setDefaultParentNode(EventNode<? extends Event> defaultParentNode) {
         this.defaultParentNode = defaultParentNode;
     }
 
-    public void setAutoResolveChildren(boolean autoResolveChildren) {
-        this.autoResolveChildren = autoResolveChildren;
-    }
-
-    public boolean isAutoResolveChildren() {
-        return autoResolveChildren;
+    public boolean isRegisterInvalidChildren() {
+        return registerInvalidChildren;
     }
 
     public EventNode<? extends Event> getDefaultParentNode() {

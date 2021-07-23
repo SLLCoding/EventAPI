@@ -47,7 +47,13 @@ public class ParentEventNodeActor implements EventNodeOptionsActor {
 
         if (!topLevelEvent.isAssignableFrom(listenerEvent) ||
             topLevelEvent.equals(listenerEvent)) {
-            eventNodeOptions.setParentEventNode(eventAPIOptions.getDefaultParentNode());
+
+            if (eventAPIOptions.isRegisterInvalidChildren()) {
+                eventNodeOptions.setParentEventNode(eventAPIOptions.getDefaultParentNode());
+            } else {
+                eventNodeOptions.setParentEventNode(null);
+            }
+
             return;
         }
 
