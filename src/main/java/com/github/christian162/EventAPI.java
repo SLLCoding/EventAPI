@@ -16,11 +16,15 @@ import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+// TODO: Implement auto-resolving child nodes.
 public class EventAPI {
     private final Map<String, EventNode<? extends Event>> registeredNodes;
     private final Map<Class<?>, EventFilter<? extends Event, ?>> eventFilterMap;
 
-    public EventAPI() {
+    private final EventAPIOptions eventAPIOptions;
+
+    public EventAPI(EventAPIOptions eventAPIOptions) {
+        this.eventAPIOptions = eventAPIOptions;
         this.registeredNodes = new HashMap<>();
 
         this.eventFilterMap = Map.ofEntries(
@@ -33,7 +37,53 @@ public class EventAPI {
         );
     }
 
-    public <T extends Event> void registerListener(EventNode<T> parentNode, Listener listener) {
+    public void registerChildListener(Listener listener) {
+        EventNode<? extends Event> parentNode = eventAPIOptions.getDefaultParentNode();
+
+        Class<? extends Listener> listenerClass = listener.getClass();
+        Class<?> enclosingClass = listenerClass.getEnclosingClass();
+
+        if (enclosingClass == null) {
+            registerListener(parentNode, listener);
+            return;
+        }
+
+        Node listenerNode = listenerClass.getAnnotation(Node.class);
+        Node enclosingNode = enclosingClass.getAnnotation(Node.class);
+
+        if (listenerNode == null) {
+            return;
+        }
+
+        if (enclosingNode == null) {
+            // Do I want to register it using the default parent node, or not register it at all?? hmm..
+            registerListener(parentNode, listener);
+            return;
+        }
+
+        Class<? extends Event> listenerEvent = listenerNode.event();
+        Class<? extends Event> topLevelEvent = enclosingNode.event();
+
+        if (!topLevelEvent.isAssignableFrom(listenerEvent) ||
+            topLevelEvent.equals(listenerEvent)) {
+            // Do I want to register it using the default parent node, or not register it at all?? hmm..
+            registerListener(parentNode, listener);
+            return;
+        }
+
+        String name = enclosingNode.name();
+        EventNode<? extends Event> eventNode = registeredNodes.get(name);
+
+        if (eventNode == null) {
+            // Do I want to register it under the default parent node, or not register it at all?? hmm..
+            registerListener(parentNode, listener);
+            return;
+        }
+
+        registerListener(eventNode, listener);
+    }
+
+    private <T extends Event> void registerListener(EventNode<T> parentNode, Listener listener) {
         Class<? extends Listener> listenerClass = listener.getClass();
         Node node = listenerClass.getAnnotation(Node.class);
 
@@ -57,40 +107,6 @@ public class EventAPI {
 
         registeredNodes.put(eventNode.getName(), eventNode);
         parentNode.addChild(eventNode);
-    }
-
-    public void registerChildListener(Listener listener) {
-        Class<? extends Listener> listenerClass = listener.getClass();
-        Class<?> enclosingClass = listenerClass.getEnclosingClass();
-
-        if (enclosingClass == null) {
-            return;
-        }
-
-
-        Node listenerNode = listenerClass.getAnnotation(Node.class);
-        Node enclosingNode = enclosingClass.getAnnotation(Node.class);
-
-        if (listenerNode == null || enclosingNode == null) {
-            return;
-        }
-
-        Class<? extends Event> listenerEvent = listenerNode.event();
-        Class<? extends Event> topLevelEvent = enclosingNode.event();
-
-        if (!topLevelEvent.isAssignableFrom(listenerEvent) ||
-            topLevelEvent.equals(listenerEvent)) {
-            return;
-        }
-
-        String name = enclosingNode.name();
-        EventNode<? extends Event> eventNode = registeredNodes.get(name);
-
-        if (eventNode == null) {
-            return;
-        }
-
-        registerListener(eventNode, listener);
     }
 
     @SuppressWarnings("unchecked")
