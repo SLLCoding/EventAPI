@@ -34,8 +34,6 @@ public class EventAPI {
     }
 
     public <T extends Event> void registerListener(EventNode<T> parentNode, Listener listener) {
-
-
         Class<? extends Listener> listenerClass = listener.getClass();
         Node node = listenerClass.getAnnotation(Node.class);
 

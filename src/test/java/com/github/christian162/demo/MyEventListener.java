@@ -1,8 +1,14 @@
-# EventAPI
-An annotation based framework for Minestom's event API
+package com.github.christian162.demo;
 
-# Demo
-```
+import com.github.christian162.annotations.EventListener;
+import com.github.christian162.annotations.Filter;
+import com.github.christian162.annotations.Node;
+import com.github.christian162.interfaces.Listener;
+import net.minestom.server.event.Event;
+import net.minestom.server.event.player.PlayerLoginEvent;
+import net.minestom.server.event.trait.EntityEvent;
+import net.minestom.server.event.trait.PlayerEvent;
+
 /*
     Parent nodes must be less strict then their child nodes.
     This structure works as each child event type is derived from their parent's event type.
@@ -45,4 +51,3 @@ public class MyEventListener implements Listener {
         }
     }
 }
-```
