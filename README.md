@@ -2,7 +2,7 @@
 An annotation based framework for Minestom's event API
 
 # Demo
-```
+```java
 /*
     Parent nodes must be less strict then their child nodes.
     This structure works as each child event type is derived from their parent's event type.
