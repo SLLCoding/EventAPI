@@ -72,13 +72,24 @@ public class EventAPI {
             return;
         }
 
-        Node node = enclosingClass.getAnnotation(Node.class);
 
-        if (node == null) {
+        Node listenerNode = listenerClass.getAnnotation(Node.class);
+        Node enclosingNode = enclosingClass.getAnnotation(Node.class);
+
+        if (listenerNode == null || enclosingNode == null) {
             return;
         }
 
-        EventNode<? extends Event> eventNode = registeredNodes.get(node.name());
+        Class<? extends Event> listenerEvent = listenerNode.event();
+        Class<? extends Event> topLevelEvent = enclosingNode.event();
+
+        if (!topLevelEvent.isAssignableFrom(listenerEvent) ||
+            topLevelEvent.equals(listenerEvent)) {
+            return;
+        }
+
+        String name = enclosingNode.name();
+        EventNode<? extends Event> eventNode = registeredNodes.get(name);
 
         if (eventNode == null) {
             return;
