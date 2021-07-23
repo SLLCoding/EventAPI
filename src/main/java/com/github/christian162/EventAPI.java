@@ -12,17 +12,17 @@ import net.minestom.server.event.trait.*;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class EventAPI {
+    private final Map<String, EventNode<? extends Event>> registeredNodes;
     private final Map<Class<?>, EventFilter<? extends Event, ?>> eventFilterMap;
 
     public EventAPI() {
+        this.registeredNodes = new HashMap<>();
+
         this.eventFilterMap = Map.ofEntries(
             Map.entry(Event.class, EventFilter.ALL),
             Map.entry(EntityEvent.class, EventFilter.ENTITY),
@@ -55,7 +55,36 @@ public class EventAPI {
             return;
         }
 
+        if (registeredNodes.containsKey(eventNode.getName())) {
+            registeredNodes.replace(eventNode.getName(), eventNode);
+        } else {
+            registeredNodes.put(eventNode.getName(), eventNode);
+        }
+
         parentNode.addChild(eventNode);
+    }
+
+    public void registerChildListener(Listener listener) {
+        Class<? extends Listener> listenerClass = listener.getClass();
+        Class<?> enclosingClass = listenerClass.getEnclosingClass();
+
+        if (enclosingClass == null) {
+            return;
+        }
+
+        Node node = enclosingClass.getAnnotation(Node.class);
+
+        if (node == null) {
+            return;
+        }
+
+        EventNode<? extends Event> eventNode = registeredNodes.get(node.name());
+
+        if (eventNode == null) {
+            return;
+        }
+
+        registerListener(eventNode, listener);
     }
 
     @SuppressWarnings("unchecked")
