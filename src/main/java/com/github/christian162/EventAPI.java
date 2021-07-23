@@ -1,207 +1,80 @@
 package com.github.christian162;
 
-import com.github.christian162.annotations.EventListener;
-import com.github.christian162.annotations.Filter;
+import com.github.christian162.actors.EventNodeOptionsActor;
+import com.github.christian162.actors.EventNodeOptionsActorChain;
+import com.github.christian162.actors.chain.ApplyPredicateActor;
+import com.github.christian162.actors.chain.EventFilterActor;
+import com.github.christian162.actors.chain.EventListenersActor;
+import com.github.christian162.actors.chain.ParentEventNodeActor;
 import com.github.christian162.annotations.Node;
 import com.github.christian162.interfaces.Listener;
 import net.minestom.server.event.Event;
 import net.minestom.server.event.EventFilter;
+import net.minestom.server.event.EventListener;
 import net.minestom.server.event.EventNode;
-import net.minestom.server.event.trait.*;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Parameter;
 import java.util.*;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 // TODO: Implement auto-resolving child nodes.
 public class EventAPI {
-    private final Map<String, EventNode<? extends Event>> registeredNodes;
-    private final Map<Class<?>, EventFilter<? extends Event, ?>> eventFilterMap;
-
     private final EventAPIOptions eventAPIOptions;
+    private final EventNodeContainer eventNodeContainer;
+    private final EventNodeOptionsActorChain eventNodeOptionsActorChain;
 
     public EventAPI(EventAPIOptions eventAPIOptions) {
         this.eventAPIOptions = eventAPIOptions;
-        this.registeredNodes = new HashMap<>();
+        this.eventNodeContainer = new EventNodeContainer();
 
-        this.eventFilterMap = Map.ofEntries(
-            Map.entry(Event.class, EventFilter.ALL),
-            Map.entry(EntityEvent.class, EventFilter.ENTITY),
-            Map.entry(InstanceEvent.class, EventFilter.INSTANCE),
-            Map.entry(PlayerEvent.class, EventFilter.PLAYER),
-            Map.entry(ItemEvent.class, EventFilter.ITEM),
-            Map.entry(InventoryEvent.class, EventFilter.INVENTORY)
-        );
+        EventNodeOptionsActor[] eventNodeOptionsActors = new EventNodeOptionsActor[] {
+            new ParentEventNodeActor(eventAPIOptions, eventNodeContainer),
+            new EventFilterActor(),
+            new ApplyPredicateActor(),
+            new EventListenersActor()
+        };
+
+        this.eventNodeOptionsActorChain = new EventNodeOptionsActorChain(eventNodeOptionsActors);
     }
 
-    public void registerChildListener(Listener listener) {
-        EventNode<? extends Event> parentNode = eventAPIOptions.getDefaultParentNode();
-
-        Class<? extends Listener> listenerClass = listener.getClass();
-        Class<?> enclosingClass = listenerClass.getEnclosingClass();
-
-        if (enclosingClass == null) {
-            registerListener(parentNode, listener);
-            return;
-        }
-
-        Node listenerNode = listenerClass.getAnnotation(Node.class);
-        Node enclosingNode = enclosingClass.getAnnotation(Node.class);
-
-        if (listenerNode == null) {
-            return;
-        }
-
-        if (enclosingNode == null) {
-            // Do I want to register it using the default parent node, or not register it at all?? hmm..
-            registerListener(parentNode, listener);
-            return;
-        }
-
-        Class<? extends Event> listenerEvent = listenerNode.event();
-        Class<? extends Event> topLevelEvent = enclosingNode.event();
-
-        if (!topLevelEvent.isAssignableFrom(listenerEvent) ||
-            topLevelEvent.equals(listenerEvent)) {
-            // Do I want to register it using the default parent node, or not register it at all?? hmm..
-            registerListener(parentNode, listener);
-            return;
-        }
-
-        String name = enclosingNode.name();
-        EventNode<? extends Event> eventNode = registeredNodes.get(name);
-
-        if (eventNode == null) {
-            // Do I want to register it under the default parent node, or not register it at all?? hmm..
-            registerListener(parentNode, listener);
-            return;
-        }
-
-        registerListener(eventNode, listener);
-    }
-
-    private <T extends Event> void registerListener(EventNode<T> parentNode, Listener listener) {
+    @SuppressWarnings("unchecked")
+    public <T extends Event> void register(Listener listener) {
         Class<? extends Listener> listenerClass = listener.getClass();
         Node node = listenerClass.getAnnotation(Node.class);
 
-        if (node == null || registeredNodes.containsKey(node.name())) {
+        if (node == null) {
             return;
         }
 
-        Optional<Method> filterMethodOptional = Arrays.stream(listenerClass.getMethods())
-            .filter(method -> method.isAnnotationPresent(Filter.class))
-            .findFirst();
+        String name = node.name();
+        Optional<EventNode<? extends Event>> eventNodeOptional = eventNodeContainer.getEventNode(name);
 
-        List<Method> methods = Arrays.stream(listenerClass.getMethods())
-                .filter(method -> method.isAnnotationPresent(EventListener.class))
-                .collect(Collectors.toList());
-
-        EventNode<? extends T> eventNode = getEventNode(listener, node, filterMethodOptional.orElse(null), methods);
-
-        if (eventNode == null) {
+        if (eventNodeOptional.isPresent()) {
+            // throw exception?
             return;
         }
 
-        registeredNodes.put(eventNode.getName(), eventNode);
-        parentNode.addChild(eventNode);
+        EventNodeOptions<? extends T> eventEventNodeOptions = eventNodeOptionsActorChain.performActions(listener, node);
+        EventNode<T> parentEventNode = (EventNode<T>) eventEventNodeOptions.getParentEventNode();
+
+        addChild(node, parentEventNode, eventEventNodeOptions);
     }
 
-    @SuppressWarnings("unchecked")
-    private <T extends Event> EventNode<T> getEventNode(Listener instance, Node node, Method filterMethod, List<Method> listeners) {
-        String eventName = node.name();
+    private <T extends Event, K extends T> void addChild(Node node, EventNode<T> parentNode, EventNodeOptions<K> eventNodeOptions) {
+        EventFilter<K, ?> eventFilter = eventNodeOptions.getEventFilter();
+        List<EventListener<? extends K>> eventListeners = eventNodeOptions.getEventListeners();
+        Predicate<K> predicate = eventNodeOptions.getPredicate();
 
-        if (eventName.isBlank()) {
-            return null;
+        if (parentNode == null) {
+            return;
         }
 
-        Class<? extends Event> eventTypeClass = node.event();
-        Predicate<T> predicate = getPredicate(instance, eventTypeClass, filterMethod);
-        EventNode<T> eventNode = getEventNode(eventName, eventTypeClass, predicate);
-
-        if (eventNode == null) {
-            return null;
-        }
-
-        for (Method method : listeners) {
-            if (method.getParameterCount() != 1) {
-                continue;
-            }
-
-            Parameter[] parameters = method.getParameters();
-            Parameter parameter = parameters[0];
-
-            Class<?> type = parameter.getType();
-
-            if (!isFilterType(type, eventTypeClass)) {
-                continue;
-            }
-
-            Class<? extends T> typeEvent = (Class<? extends T>) type;
-
-            eventNode.addListener(typeEvent, event -> {
-                try {
-                    method.invoke(instance, event);
-                } catch (IllegalAccessException | InvocationTargetException e) {
-                    e.printStackTrace();
-                }
-            });
-        }
-
+        EventNode<K> eventNode = EventNode.event(node.name(), eventFilter, predicate);
         eventNode.setPriority(node.priority());
-        return eventNode;
-    }
 
-    private <T extends Event> Predicate<T> getPredicate(Listener listener, Class<? extends Event> eventTypeClass, Method filterMethod) {
-        Predicate<T> predicate = $ -> true;
-
-        if (filterMethod == null) {
-            return predicate;
+        for (EventListener<? extends K> eventListener : eventListeners) {
+            eventNode.addListener(eventListener);
         }
 
-        Class<?> returnType = filterMethod.getReturnType();
-
-        if (!returnType.equals(Boolean.class) && !returnType.equals(boolean.class)) {
-            return predicate;
-        }
-
-        if (filterMethod.getParameterCount() != 1) {
-            return predicate;
-        }
-
-        Parameter[] parameters = filterMethod.getParameters();
-        Parameter parameter = parameters[0];
-
-        if (!parameter.getType().equals(eventTypeClass)) {
-            return predicate;
-        }
-
-        return param -> {
-            try {
-                Object result = filterMethod.invoke(listener, param);
-                return (boolean) result;
-            } catch (IllegalAccessException | InvocationTargetException e) {
-                e.printStackTrace();
-                return false;
-            }
-        };
-    }
-
-    @SuppressWarnings("unchecked")
-    private <T extends Event> EventNode<T> getEventNode(String name, Class<? extends Event> eventClass, Predicate<T> predicate) {
-        EventFilter<? extends Event, ?> eventFilter = eventFilterMap.get(eventClass);
-
-        if (eventFilter == null) {
-            return null;
-        }
-
-        return EventNode.event(name, (EventFilter<T, ?>) eventFilter, predicate);
-    }
-
-    private boolean isFilterType(Class<?> parameterType, Class<?> filterType) {
-        Class<?>[] interfaces = parameterType.getInterfaces();
-        return interfaces.length > 0 && interfaces[0].equals(filterType);
+        parentNode.addChild(eventNode);
     }
 }

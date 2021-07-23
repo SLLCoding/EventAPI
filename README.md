@@ -38,7 +38,7 @@ public class MyEventListener implements Listener {
 
             // The parameter type T, in this case PlayerLoginEvent
             // must be assignable from @Node#event
-            @EventListener
+            @Listen
             public void onPlayerLogin(PlayerLoginEvent playerLoginEvent) {
 
             }

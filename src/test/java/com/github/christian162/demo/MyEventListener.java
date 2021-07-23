@@ -1,6 +1,6 @@
 package com.github.christian162.demo;
 
-import com.github.christian162.annotations.EventListener;
+import com.github.christian162.annotations.Listen;
 import com.github.christian162.annotations.Filter;
 import com.github.christian162.annotations.Node;
 import com.github.christian162.interfaces.Listener;
@@ -44,7 +44,7 @@ public class MyEventListener implements Listener {
 
             // The parameter type T, in this case PlayerLoginEvent
             // must be assignable from @Node#event
-            @EventListener
+            @Listen
             public void onPlayerLogin(PlayerLoginEvent playerLoginEvent) {
 
             }

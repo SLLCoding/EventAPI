@@ -2,15 +2,15 @@ package com.github.christian162;
 
 import net.minestom.server.event.Event;
 import net.minestom.server.event.EventFilter;
+import net.minestom.server.event.EventListener;
 import net.minestom.server.event.EventNode;
 
 import java.util.List;
-import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 public class EventNodeOptions<T extends Event> {
     private Predicate<T> predicate;
-    private List<Consumer<? extends T>> consumers;
+    private List<EventListener<? extends T>> eventListeners;
     private EventNode<? extends Event> parentEventNode;
     private EventFilter<T, ?> eventFilter;
 
@@ -18,8 +18,8 @@ public class EventNodeOptions<T extends Event> {
         this.predicate = predicate;
     }
 
-    public void setConsumers(List<Consumer<? extends T>> consumers) {
-        this.consumers = consumers;
+    public void setEventListeners(List<EventListener<? extends T>> eventListeners) {
+        this.eventListeners = eventListeners;
     }
 
     public void setParentEventNode(EventNode<? extends Event> parentEventNode) {
@@ -34,8 +34,8 @@ public class EventNodeOptions<T extends Event> {
         return predicate;
     }
 
-    public List<Consumer<? extends T>> getConsumers() {
-        return consumers;
+    public List<EventListener<? extends T>> getEventListeners() {
+        return eventListeners;
     }
 
     public EventNode<? extends Event> getParentEventNode() {

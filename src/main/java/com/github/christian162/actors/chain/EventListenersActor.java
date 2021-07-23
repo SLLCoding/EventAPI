@@ -2,10 +2,12 @@ package com.github.christian162.actors.chain;
 
 import com.github.christian162.EventNodeOptions;
 import com.github.christian162.actors.EventNodeOptionsActor;
-import com.github.christian162.annotations.EventListener;
+import com.github.christian162.annotations.Listen;
 import com.github.christian162.annotations.Node;
 import com.github.christian162.interfaces.Listener;
 import net.minestom.server.event.Event;
+import net.minestom.server.event.EventListener;
+import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -22,26 +24,37 @@ public class EventListenersActor implements EventNodeOptionsActor {
         Class<? extends Event> event = node.event();
         Class<? extends Listener> listenerClass = listener.getClass();
 
-        List<Consumer<? extends T>> consumers = Arrays.stream(listenerClass.getMethods())
+        List<EventListener<? extends T>> eventListeners = Arrays.stream(listenerClass.getMethods())
                 .filter(method -> isListenerMethod(method, event))
-                .map(method -> (Consumer<? extends T>) getConsumer(listener, method))
+                .map(method -> (EventListener<? extends T>) getEventListener(node, listener, method))
                 .collect(Collectors.toList());
 
-        eventNodeOptions.setConsumers(consumers);
+        eventNodeOptions.setEventListeners(eventListeners);
     }
 
-    private <T extends Event> Consumer<? extends T> getConsumer(Listener listener, Method method) {
-        return parameter -> {
-            try {
-                method.invoke(listener, parameter);
-            } catch (IllegalAccessException | InvocationTargetException e) {
-                e.printStackTrace();
+    @SuppressWarnings("unchecked")
+    private <K extends Event, T extends K> EventListener<T> getEventListener(Node node, Listener listener, Method method) {
+        return new EventListener<T>() {
+            @Override
+            public @NotNull Class<T> getEventType() {
+                return (Class<T>) node.event();
+            }
+
+            @Override
+            public @NotNull Result run(@NotNull T t) {
+                try {
+                    method.invoke(listener, t);
+                    return Result.SUCCESS;
+                } catch (IllegalAccessException | InvocationTargetException e) {
+                    e.printStackTrace();
+                    return Result.EXCEPTION;
+                }
             }
         };
     }
 
     private boolean isListenerMethod(Method method, Class<? extends Event> event) {
-        if (!method.isAnnotationPresent(EventListener.class)) {
+        if (!method.isAnnotationPresent(Listen.class)) {
             return false;
         }
 
