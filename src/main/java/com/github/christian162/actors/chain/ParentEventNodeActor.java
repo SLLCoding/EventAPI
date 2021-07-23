@@ -13,7 +13,7 @@ import java.util.Optional;
 
 public class ParentEventNodeActor implements EventNodeOptionsActor {
     private final EventAPIOptions eventAPIOptions;
-    private EventNodeContainer eventNodeContainer;
+    private final EventNodeContainer eventNodeContainer;
 
     public ParentEventNodeActor(EventAPIOptions eventAPIOptions, EventNodeContainer eventNodeContainer) {
         this.eventAPIOptions = eventAPIOptions;
