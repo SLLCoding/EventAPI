@@ -16,14 +16,11 @@ import net.minestom.server.event.EventNode;
 import java.util.*;
 import java.util.function.Predicate;
 
-// TODO: Implement auto-resolving child nodes.
 public class EventAPI {
-    private final EventAPIOptions eventAPIOptions;
     private final EventNodeContainer eventNodeContainer;
     private final EventNodeOptionsActorChain eventNodeOptionsActorChain;
 
     public EventAPI(EventAPIOptions eventAPIOptions) {
-        this.eventAPIOptions = eventAPIOptions;
         this.eventNodeContainer = new EventNodeContainer();
 
         EventNodeOptionsActor[] eventNodeOptionsActors = new EventNodeOptionsActor[] {
@@ -49,7 +46,6 @@ public class EventAPI {
         Optional<EventNode<? extends Event>> eventNodeOptional = eventNodeContainer.getEventNode(name);
 
         if (eventNodeOptional.isPresent()) {
-            // throw exception?
             return;
         }
 
