@@ -15,11 +15,11 @@ public class EventAPIOptions {
         this.autoResolveChildren = autoResolveChildren;
     }
 
-    boolean isAutoResolveChildren() {
+    public boolean isAutoResolveChildren() {
         return autoResolveChildren;
     }
 
-    EventNode<? extends Event> getDefaultParentNode() {
+    public EventNode<? extends Event> getDefaultParentNode() {
         return defaultParentNode;
     }
 }
