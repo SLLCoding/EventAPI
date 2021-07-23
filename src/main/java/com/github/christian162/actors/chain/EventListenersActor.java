@@ -37,7 +37,7 @@ public class EventListenersActor implements EventNodeOptionsActor {
         return new EventListener<T>() {
             @Override
             public @NotNull Class<T> getEventType() {
-                return (Class<T>) node.event();
+                return (Class<T>) method.getParameters()[0].getType();
             }
 
             @Override
